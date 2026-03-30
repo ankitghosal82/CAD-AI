@@ -1,0 +1,13 @@
+# import sys
+# sys.path.append("C:\Users\Anshita M\Downloads\FreeCAD_1.1.0-Windows-x86_64-py311-installer.exe")
+# import FreeCAD
+# import Part
+
+# doc = FreeCAD.open("model.step")
+# shape = doc.Objects[0].Shape
+
+# for face in shape.Faces:
+#     print(face.Area)
+
+# for edge in shape.Edges:
+#     print(edge.Length)

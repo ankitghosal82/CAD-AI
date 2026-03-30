@@ -1,0 +1,62 @@
+[
+  {
+    "name": "good_bracket_a",
+    "length_mm": 100.0,
+    "width_mm": 60.0,
+    "height_mm": 40.0,
+    "thickness_mm": 4.0,
+    "hole_diameter_mm": 8.0,
+    "hole_edge_distance_mm": 16.0,
+    "sharp_edge_count": 0,
+    "fillet_radius_mm": 2.0,
+    "expected_quality": "good"
+  },
+  {
+    "name": "good_plate_b",
+    "length_mm": 120.0,
+    "width_mm": 80.0,
+    "height_mm": 10.0,
+    "thickness_mm": 5.0,
+    "hole_diameter_mm": 10.0,
+    "hole_edge_distance_mm": 18.0,
+    "sharp_edge_count": 0,
+    "fillet_radius_mm": 1.5,
+    "expected_quality": "good"
+  },
+  {
+    "name": "good_mount_c",
+    "length_mm": 90.0,
+    "width_mm": 50.0,
+    "height_mm": 35.0,
+    "thickness_mm": 3.5,
+    "hole_diameter_mm": 6.0,
+    "hole_edge_distance_mm": 12.0,
+    "sharp_edge_count": 1,
+    "fillet_radius_mm": 1.0,
+    "expected_quality": "good"
+  },
+  {
+    "name": "thin_plate_bad",
+    "length_mm": 120.0,
+    "width_mm": 80.0,
+    "height_mm": 8.0,
+    "thickness_mm": 1.2,
+    "hole_diameter_mm": 10.0,
+    "hole_edge_distance_mm": 8.0,
+    "sharp_edge_count": 6,
+    "fillet_radius_mm": 0.0,
+    "expected_quality": "bad"
+  },
+  {
+    "name": "edge_hole_bad",
+    "length_mm": 100.0,
+    "width_mm": 55.0,
+    "height_mm": 25.0,
+    "thickness_mm": 2.5,
+    "hole_diameter_mm": 12.0,
+    "hole_edge_distance_mm": 10.0,
+    "sharp_edge_count": 2,
+    "fillet_radius_mm": 0.0,
+    "expected_quality": "bad"
+  }
+]
