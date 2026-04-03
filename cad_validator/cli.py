@@ -1,40 +1,31 @@
 import argparse
-
-from cad_validator.ai import DesignAnomalyDetector
-from cad_validator.report import build_report
+from cad_validator.ai import DesignQualityPredictor
+from cad_validator.sample_data import load_designs_from_excel
 from cad_validator.rules import run_rule_checks
-from cad_validator.sample_data import load_designs_from_json
 from cad_validator.scoring import calculate_design_score
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Validate extracted CAD design features using rules and AI."
-    )
-    parser.add_argument(
-        "--input",
-        default="data/sample_designs.json",
-        help="Path to a JSON file containing extracted design features.",
-    )
-    return parser.parse_args()
-
-
+from cad_validator.report import build_report
+from cad_validator.models import DesignFeatures
 def main() -> None:
-    args = parse_args()
-    designs = load_designs_from_json(args.input)
-
-    detector = DesignAnomalyDetector()
-    detector.fit(designs)
-
-    for design in designs:
-        issues = run_rule_checks(design)
-        ai_prediction = detector.predict(design)
-        ai_flagged = ai_prediction == -1
-        score = calculate_design_score(issues, ai_flagged)
-        report = build_report(design.name, issues, ai_flagged, score)
+    parser=argparse.ArgumentParser(description="Enterprise CAD Validation Pipeline")
+    parser.add_argument("--train",type=str,help="Path to Excel dataset to train the model")
+    parser.add_argument("--test",action="store_true",help="Test the AI with a mock bad part")
+    args=parser.parse_args()
+    predictor=DesignQualityPredictor()
+    if args.train:
+        designs=load_designs_from_excel(args.train)
+        predictor.train(designs)
+        predictor.save_model("cad_validator/ai_model.pkl")
+    if args.test:
+        print("\nLoading pre-trained model for live prediction...")
+        predictor.load_model("cad_validator/ai_model.pkl")
+        live_part=DesignFeatures("Live_Bracket_01",100.0,50.0,20.0,1.2,10.0,8.0,2,0.0)
+        issues=run_rule_checks(live_part)
+        ai_result=predictor.predict_with_insights(live_part)
+        ai_flagged=ai_result["status"]=="FAIL"
+        score=calculate_design_score(issues,ai_flagged)
+        report=build_report(live_part.name,issues,ai_result,score)
+        print("\n"+"="*60)
         print(report)
-        print("\n" + "=" * 60 + "\n")
-
-
+        print("="*60)
 if __name__ == "__main__":
     main()
