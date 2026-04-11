@@ -4,22 +4,31 @@ import Part
 import sys
 import os
 import math
-PROJECT_PATH=r"C:\Users\ANKIT\cad-ai\CAD-AI"
+
+# 1. Project Path Setup (STRICTLY NO VENV PATHS ALLOWED)
+PROJECT_PATH = r"C:\Users\ANKIT\cad-ai\CAD-AI"
+
 if PROJECT_PATH not in sys.path:
     sys.path.append(PROJECT_PATH)
-sys.path=[p for p in sys.path if ".venv" not in p and "venv" not in p]
+
+# Clean out any old corrupted venv paths that might be stuck in FreeCAD's memory
+sys.path = [p for p in sys.path if ".venv" not in p and "venv" not in p]
+
 from cad_validator.models import DesignFeatures
 from cad_validator.rules import run_rule_checks
 from cad_validator.ai import DesignQualityPredictor
 from cad_validator.scoring import calculate_design_score
 from cad_validator.report import build_report
+
 from dotenv import load_dotenv
-load_dotenv(os.path.join(PROJECT_PATH,".env"))
+load_dotenv(os.path.join(PROJECT_PATH, ".env"))
+
 def analyze_active_part():
     doc = App.ActiveDocument
     if not doc:
-        App.Console.PrintError("\n❌[ERROR] No 3D model is open. Please draw a part first!\n")
+        App.Console.PrintError("\n❌ [ERROR] No 3D model is open. Please draw a part first!\n")
         return
+
     target_obj = None
     for obj in doc.Objects:
         if obj.TypeId == "PartDesign::Body" and obj.Tip is not None:
@@ -28,18 +37,23 @@ def analyze_active_part():
         elif hasattr(obj, "Shape") and getattr(obj.Shape, "Volume", 0) > 0:
             target_obj = obj
             break
+
     if not target_obj:
         App.Console.PrintError("\n❌ [ERROR] No solid 3D shape found. Make sure you padded your sketch!\n")
         return
+
     shape = target_obj.Shape
     App.Console.PrintMessage(f"\n🔍 AI Scanning Geometry for: {target_obj.Label}...\n")
+
     bbox = shape.BoundBox
     length = round(bbox.XMax - bbox.XMin, 2)
     width = round(bbox.YMax - bbox.YMin, 2)
     height = round(bbox.ZMax - bbox.ZMin, 2)
+
     if math.isinf(length) or math.isinf(width) or math.isinf(height):
         App.Console.PrintError("\n❌ [ERROR] Dimensions are invalid.\n")
         return
+
     hole_diameters = []
     fillet_radii = []
     for face in shape.Faces:
@@ -49,8 +63,10 @@ def analyze_active_part():
                 fillet_radii.append(radius)
             else:
                 hole_diameters.append(radius * 2)
+
     avg_hole_dia = round(sum(hole_diameters) / len(hole_diameters), 2) if hole_diameters else 0.0
     avg_fillet = round(sum(fillet_radii) / len(fillet_radii), 2) if fillet_radii else 0.0
+
     features = DesignFeatures(
         name=target_obj.Label,
         length_mm=length,
@@ -62,9 +78,11 @@ def analyze_active_part():
         sharp_edge_count=len(shape.Edges),
         fillet_radius_mm=avg_fillet
     )
+
     issues = run_rule_checks(features)
     predictor = DesignQualityPredictor()
     model_path = os.path.join(PROJECT_PATH, "cad_validator", "ai_model.pkl")
+    
     try:
         import warnings
         with warnings.catch_warnings():
@@ -73,48 +91,61 @@ def analyze_active_part():
     except FileNotFoundError:
         App.Console.PrintError(f"\n❌ AI Brain not found at {model_path}.\n")
         return
+
     ai_result = predictor.predict_with_insights(features)
     ai_flagged = ai_result["status"] == "FAIL"
     score = calculate_design_score(issues, ai_flagged)
+    
     if ai_flagged or score < 70:
         target_obj.ViewObject.ShapeColor = (1.0, 0.0, 0.0)
         App.Console.PrintError("\n🔴 AI VERDICT: DESIGN FAILED MANUFACTURING CHECKS\n")
     else:
         target_obj.ViewObject.ShapeColor = (0.0, 1.0, 0.0)
-        App.Console.PrintMessage("\n🟢 AI VERDICT: DESIGN APPROVED\n") 
+        App.Console.PrintMessage("\n🟢 AI VERDICT: DESIGN APPROVED\n")
+        
     App.ActiveDocument.recompute()
     Gui.updateGui()
+
     final_report = build_report(features.name, issues, ai_result, score)
     App.Console.PrintMessage(final_report + "\n")
+
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    
     if GROQ_API_KEY:
         try:
             from groq import Groq
             client = Groq(api_key=GROQ_API_KEY)
             App.Console.PrintMessage("\n🤖 Consulting Groq LLM Engineer for suggestions...\n")
+            
             prompt = f"""
             Act as an expert Senior Mechanical Engineer.
             I have a CAD part with these properties:
             - Dimensions: {length}x{width}x{height} mm
             - Hole Diameter: {avg_hole_dia} mm
             - Fillet Radius: {avg_fillet} mm
+            
             Our ML model gave it a manufacturability score of {score}/100.
             Engineering rules flagged: {issues if issues else "None"}.
+            
             Provide 3 extremely brief, actionable suggestions to improve this design for manufacturing. Do not use formatting, just plain text.
             """
+
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[{"role":"user","content":prompt}],
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=150
             )
-            App.Console.PrintMessage("\n✨EXPERT SUGGESTIONS✨\n")
+            
+            App.Console.PrintMessage("\n✨ EXPERT SUGGESTIONS ✨\n")
             App.Console.PrintMessage(response.choices[0].message.content + "\n")
-            App.Console.PrintMessage("="*60+"\n")
+            App.Console.PrintMessage("="*60 + "\n")
+            
         except ImportError:
             App.Console.PrintError("\n❌ Groq library not installed.\n")
         except Exception as e:
             App.Console.PrintError(f"\n❌ Groq LLM Connection Failed: {e}\n")
     else:
         App.Console.PrintMessage("\n[Note: Add GROQ_API_KEY to your .env file to enable LLM suggestions]\n")
+
 if __name__ == "__main__":
     analyze_active_part()

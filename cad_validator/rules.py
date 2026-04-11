@@ -1,22 +1,14 @@
 from dataclasses import dataclass
-
 from cad_validator.models import DesignFeatures
-
-
 @dataclass
 class ValidationIssue:
     severity: str
     message: str
     suggestion: str
-
-
 MIN_THICKNESS_MM = 2.0
 HOLE_EDGE_DISTANCE_FACTOR = 1.5
-
-
 def run_rule_checks(design: DesignFeatures) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
-
     if design.thickness_mm < MIN_THICKNESS_MM:
         issues.append(
             ValidationIssue(
@@ -25,7 +17,6 @@ def run_rule_checks(design: DesignFeatures) -> list[ValidationIssue]:
                 suggestion=f"Increase thickness to at least {MIN_THICKNESS_MM:.1f} mm.",
             )
         )
-
     min_edge_distance = design.hole_diameter_mm * HOLE_EDGE_DISTANCE_FACTOR
     if design.hole_edge_distance_mm < min_edge_distance:
         issues.append(

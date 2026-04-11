@@ -1,0 +1,20 @@
+# Environment Variables (Keep API keys secret!)
+.env
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Machine Learning Models (Should be trained locally)
+cad_validator/ai_model.pkl
+
+# FreeCAD Backup Files
+*.FCBak
+*.FCStd1
